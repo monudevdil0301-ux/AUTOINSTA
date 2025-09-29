@@ -1,0 +1,125 @@
+Project: Insta Auto Video Upload & Creation
+
+---
+
+client/src/App.js
+
+import React from 'react';
+import SigmaEditor from './SigmaEditor';
+
+function App() {
+  return (
+    <div>
+      <h1>Instagram Auto Video Upload & Creation</h1>
+      <SigmaEditor />
+    </div>
+  );
+}
+
+export default App;
+
+---
+
+client/src/SigmaEditor.js
+
+import React, { useRef, useState } from 'react';
+import { createFFmpeg, fetchFile } from '@ffmpeg/ffmpeg';
+
+const ffmpeg = createFFmpeg({ log: true });
+
+function SigmaEditor() {
+  const [videoSrc, setVideoSrc] = useState(null);
+  const [text, setText] = useState('SIGMA GRINDSET');
+  const [output, setOutput] = useState(null);
+  const fileInput = useRef();
+
+  const handleVideoUpload = (e) => {
+    const file = e.target.files[0];
+    setVideoSrc(URL.createObjectURL(file));
+  };
+
+  const handleEdit = async () => {
+    if (!videoSrc) return;
+    await ffmpeg.load();
+    ffmpeg.FS('writeFile', 'input.mp4', await fetchFile(fileInput.current.files[0]));
+    await ffmpeg.run(
+      '-i', 'input.mp4',
+      '-vf', `drawtext=text='${text}':fontcolor=white:fontsize=48:x=(w-text_w)/2:y=h-100:box=1:boxcolor=black@0.5`,
+      'output.mp4'
+    );
+    const data = ffmpeg.FS('readFile', 'output.mp4');
+    setOutput(URL.createObjectURL(new Blob([data.buffer], { type: 'video/mp4' })));
+  };
+
+  return (
+    <div>
+      <h2>Sigma Video Editor</h2>
+      <input type="file" accept="video/mp4" ref={fileInput} onChange={handleVideoUpload} />
+      <input type="text" value={text} onChange={e => setText(e.target.value)} placeholder="Overlay Text" />
+      <button onClick={handleEdit}>Add Sigma Text</button>
+      {videoSrc && <video src={videoSrc} controls width={400} />}
+      {output && <>
+        <h3>Edited Video</h3>
+        <video src={output} controls width={400} />
+        <a href={output} download="sigma.mp4">Download</a>
+      </>}
+    </div>
+  );
+}
+
+export default SigmaEditor;
+
+---
+
+client/src/index.js
+
+import React from 'react';
+import ReactDOM from 'react-dom/client';
+import App from './App';
+
+const root = ReactDOM.createRoot(document.getElementById('root'));
+root.render(
+  <React.StrictMode>
+    <App />
+  </React.StrictMode>
+);
+
+---
+
+server/index.js
+
+const express = require('express');
+const dotenv = require('dotenv');
+dotenv.config();
+
+const app = express();
+app.use(express.json());
+const PORT = process.env.PORT || 5000;
+
+app.get('/', (req, res) => {
+  res.send('Instagram Auto Video Upload & Creation API');
+});
+
+const instagramRoutes = require('./routes/instagram');
+app.use('/api/instagram', instagramRoutes);
+
+app.listen(PORT, () => {
+  console.log(`Server running on port ${PORT}`);
+});
+
+---
+
+server/routes/instagram.js
+
+const express = require('express');
+const router = express.Router();
+const axios = require('axios');
+
+// Placeholder for Instagram OAuth and upload logic
+router.post('/upload', async (req, res) => {
+  // Here you would handle video upload to Instagram Graph API
+  // Requires Instagram Business account and OAuth token
+  res.json({ message: 'Video upload endpoint (to be implemented)' });
+});
+
+module.exports = router;
